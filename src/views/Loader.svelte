@@ -36,13 +36,13 @@
             'user.json',
             'index.json'
         ];
-        for (const requiredFile of requiredFiles) {
-            if (!files.some((file) => file.name.includes(requiredFile))) validPackage = false;
-        }
-        if (files.some((file) => file.name == 'account/user.json')) {
-            error = 'Your package has been generated before June 14th, 2025 and is no longer supported by the latest version of DDPE. You might want to try this <a href="https://d15bd6c5.discord-data-package-explorer.pages.dev/" target="_blank">older build</a> instead.';
+        if (files.some((file) => file.name.startsWith('package/'))) {
+            error = 'Seems like you unzipped and re-zipped your package file. To fix this issue, instead of right clicking on the package folder and zipping it, you should open the folder, select all files inside it, and zip them directly. Name the resulting file "package.zip" and try again.';
             loading = false;
             return;
+        }
+        for (const requiredFile of requiredFiles) {
+            if (!files.some((file) => file.name.includes(requiredFile))) validPackage = false;
         }
         if (!validPackage) {
             error = 'Your package seems to be corrupted. Click or drop your package file here to retry';
