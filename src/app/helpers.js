@@ -49,3 +49,69 @@ export const getGitHubContributors = () => {
             });
     });
 };
+
+/**
+ * Generate a file structure dump from the zip files
+ * @param files The files from the unzipped package
+ * @returns A formatted string representing the file structure
+ */
+export const generateFileStructureDump = (files) => {
+    if (!files || files.length === 0) return 'No files found in package';
+    
+    // Extract only first-level directories
+    const directories = new Set();
+    files.forEach(file => {
+        const parts = file.name.split('/');
+        // Only add the first directory level
+        if (parts.length > 1 && parts[0]) {
+            directories.add(parts[0]);
+        }
+    });
+    
+    // Convert to array and sort
+    const sortedDirs = Array.from(directories).sort();
+    
+    // Format the structure
+    let dump = `Total files: ${files.length}\n`;
+    dump += `Root directories: ${sortedDirs.length}\n\n`;
+    dump += 'Directory structure:\n';
+    dump += '```\n';
+    
+    sortedDirs.forEach(dir => {
+        dump += `${dir}/\n`;
+    });
+    
+    dump += '```';
+    return dump;
+};
+
+/**
+ * Generate a GitHub issue URL with pre-filled error information
+ * @param errorMessage The error message
+ * @param fileStructure The file structure dump
+ * @returns The GitHub issue URL
+ */
+export const generateGitHubIssueURL = (errorMessage, fileStructure) => {
+    const repo = 'Androz2091/discord-data-package-explorer';
+    const title = encodeURIComponent(`[Auto-Report] Package Processing Error`);
+    
+    const body = encodeURIComponent(
+`**Error Message:**
+${errorMessage}
+
+**File Structure:**
+${fileStructure}
+
+**Browser:**
+${navigator.userAgent}
+
+**Date:**
+${new Date().toISOString()}
+
+**Additional Information:**
+Please add any additional details about your Discord package that might help us investigate this issue.
+`
+    );
+    
+    return `https://github.com/${repo}/issues/new?title=${title}&body=${body}&labels=bug,auto-report`;
+};

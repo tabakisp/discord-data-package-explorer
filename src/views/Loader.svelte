@@ -4,12 +4,16 @@
     import { navigate } from "svelte-routing";
     import { loadTask, loadEstimatedTime, data, diswhoCompleted } from '../app/store';
     import { extractData } from '../app/extractor';
+    import { generateFileStructureDump, generateGitHubIssueURL } from '../app/helpers';
 
     let loading = false;
     let error = "";
+    let errorReportURL = "";
     let informationalMessage = "";
     async function handleFile (file) {
         loading = true;
+        error = "";
+        errorReportURL = "";
         const uz = new Unzip();
         uz.register(AsyncUnzipInflate);
         const files = [];
@@ -30,6 +34,14 @@
                 uz.push(value.subarray(i, i + 65536));
             }
         }
+        
+        // Helper function to set error with GitHub report link
+        const setErrorWithReport = (errorMsg) => {
+            error = errorMsg;
+            const fileStructure = generateFileStructureDump(files);
+            errorReportURL = generateGitHubIssueURL(errorMsg, fileStructure);
+        };
+        
         let validPackage = true;
         const requiredFiles = [
             'README.txt',
@@ -37,7 +49,7 @@
             'index.json'
         ];
         if (files.some((file) => file.name.startsWith('package/'))) {
-            error = 'Seems like you unzipped and re-zipped your package file. To fix this issue, instead of right clicking on the package folder and zipping it, you should open the folder, select all files inside it, and zip them directly. Name the resulting file "package.zip" and try again.';
+            setErrorWithReport('Seems like you unzipped and re-zipped your package file. To fix this issue, instead of right clicking on the package folder and zipping it, you should open the folder, select all files inside it, and zip them directly. Name the resulting file "package.zip" and try again.');
             loading = false;
             return;
         }
@@ -45,7 +57,7 @@
             if (!files.some((file) => file.name.includes(requiredFile))) validPackage = false;
         }
         if (!validPackage) {
-            error = 'Your package seems to be corrupted. Click or drop your package file here to retry';
+            setErrorWithReport('Your package seems to be corrupted. Click or drop your package file here to retry');
             loading = false;
             return;
         }
@@ -60,12 +72,12 @@
         }).catch((err) => {
             console.error(err);
             if (err.message === 'invalid_package_missing_messages') {
-                error = 'Some data is missing in your package, therefore it can not be read. <br> It is a bug on Discord side (06-10-21), and will be fixed in the next few days. <br> Join <a href="https://androz2091.fr/discord">our Discord</a> to get more information.';
+                setErrorWithReport('Some data is missing in your package, therefore it can not be read. <br> It is a bug on Discord side (06-10-21), and will be fixed in the next few days. <br> Join <a href="https://androz2091.fr/discord">our Discord</a> to get more information.');
                 loading = false;
             } else {
-                error = 'Something went wrong... Click or drop your package file here to retry';
+                setErrorWithReport('Something went wrong... Click or drop your package file here to retry');
                 loading = false;
-                alert(err.stack);
+                //alert(err.stack);
             }
         });
     }
@@ -153,7 +165,13 @@
                                 <small style="display: block; margin-top: 4px;">{$loadEstimatedTime}</small>
                             {/if}
                         {:else if error}
-                            <p style="color: red;">{@html error}</p>
+                            <p style="color: red; margin-bottom: 0.5rem;">{@html error}</p>
+                            {#if errorReportURL}
+                                <div style="margin-top: 1rem; padding: 0.75rem; background-color: rgba(249, 168, 37, 0.1); border-radius: 0.3rem; border-left: 3px solid #f9a825;">
+                                    <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">It would be an immense help if you can report this problem (it takes one click, everything is pre-filled) on GitHub so we have all the details needed to help you. You will be notified back when your package is supported.</p>
+                                    <a href="{errorReportURL}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 0.5rem 1rem; background-color: #f9a825; color: black !important; text-decoration: none; border-radius: 0.3rem; font-size: 0.9rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Send the issue on GitHub</a>
+                                </div>
+                            {/if}
                         {:else if informationalMessage}
                             {informationalMessage}
                         {:else if $diswhoCompleted}
